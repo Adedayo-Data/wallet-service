@@ -1,5 +1,6 @@
 package com.hng.wallet_service.services;
 
+import com.hng.wallet_service.exceptions.ApiKeyLimitExceededException;
 import com.hng.wallet_service.models.ApiKey;
 import com.hng.wallet_service.models.User;
 import com.hng.wallet_service.models.enums.ApiKeyStatus;
@@ -33,7 +34,8 @@ public class ApiKeyService {
         // Check 5-key limit
         long activeKeyCount = apiKeyRepository.countByUserIdAndStatus(userId, ApiKeyStatus.ACTIVE);
         if (activeKeyCount >= 5) {
-            throw new RuntimeException("Maximum 5 active API keys allowed per user");
+            throw new ApiKeyLimitExceededException(
+                    "Maximum of 5 active API keys allowed per user. Please revoke an existing key before creating a new one.");
         }
 
         User user = userRepository.findById(userId)
