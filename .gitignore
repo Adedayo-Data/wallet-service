@@ -1,4 +1,7 @@
 *.md
+*.txt
+*.sql
+*.sh
 HELP*
 application-test.properties
 target/
