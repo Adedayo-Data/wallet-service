@@ -6,6 +6,7 @@ import com.hng.wallet_service.services.PaystackService;
 import com.hng.wallet_service.services.TransferService;
 import com.hng.wallet_service.services.WalletService;
 import com.hng.wallet_service.services.TransactionService;
+import com.hng.wallet_service.utils.AuthenticationHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -23,12 +24,13 @@ public class WalletController {
     private final TransferService transferService;
     private final WalletService walletService;
     private final TransactionService transactionService;
+    private final AuthenticationHelper authHelper;
 
     @PostMapping("/deposit")
     public Map<String, String> deposit(
             @RequestBody DepositRequest request,
             Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
+        Long userId = authHelper.getUserId(authentication);
         return paystackService.initializeDeposit(userId, request.amount());
     }
 
@@ -54,7 +56,7 @@ public class WalletController {
     public Map<String, String> transfer(
             @RequestBody TransferRequest request,
             Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
+        Long userId = authHelper.getUserId(authentication);
         transferService.transfer(userId, request.walletNumber(), request.amount());
 
         return Map.of(
@@ -64,7 +66,7 @@ public class WalletController {
 
     @GetMapping("/balance")
     public Map<String, BigDecimal> getBalance(Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
+        Long userId = authHelper.getUserId(authentication);
         Wallet wallet = walletService.getWalletByUserId(userId);
 
         return Map.of("balance", wallet.getBalance());
@@ -72,7 +74,7 @@ public class WalletController {
 
     @GetMapping("/transactions")
     public java.util.List<Map<String, Object>> getTransactions(Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
+        Long userId = authHelper.getUserId(authentication);
         Wallet wallet = walletService.getWalletByUserId(userId);
         java.util.List<Transaction> transactions = transactionService.getTransactionHistory(wallet.getId());
 
