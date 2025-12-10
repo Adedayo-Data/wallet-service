@@ -9,6 +9,7 @@ import com.hng.wallet_service.services.TransactionService;
 import com.hng.wallet_service.utils.AuthenticationHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,6 +28,7 @@ public class WalletController {
     private final AuthenticationHelper authHelper;
 
     @PostMapping("/deposit")
+    @PreAuthorize("hasAuthority('ROLE_USER') or hasAuthority('SCOPE_DEPOSIT')")
     public Map<String, String> deposit(
             @RequestBody DepositRequest request,
             Authentication authentication) {
@@ -43,6 +45,7 @@ public class WalletController {
     }
 
     @GetMapping("/deposit/{reference}/status")
+    @PreAuthorize("hasAuthority('ROLE_USER') or hasAuthority('SCOPE_READ')")
     public Map<String, Object> getDepositStatus(@PathVariable String reference) {
         Transaction transaction = paystackService.getDepositStatus(reference);
 
@@ -53,6 +56,7 @@ public class WalletController {
     }
 
     @PostMapping("/transfer")
+    @PreAuthorize("hasAuthority('ROLE_USER') or hasAuthority('SCOPE_TRANSFER')")
     public Map<String, String> transfer(
             @RequestBody TransferRequest request,
             Authentication authentication) {
@@ -65,6 +69,7 @@ public class WalletController {
     }
 
     @GetMapping("/balance")
+    @PreAuthorize("hasAuthority('ROLE_USER') or hasAuthority('SCOPE_READ')")
     public Map<String, BigDecimal> getBalance(Authentication authentication) {
         Long userId = authHelper.getUserId(authentication);
         Wallet wallet = walletService.getWalletByUserId(userId);
@@ -73,6 +78,7 @@ public class WalletController {
     }
 
     @GetMapping("/transactions")
+    @PreAuthorize("hasAuthority('ROLE_USER') or hasAuthority('SCOPE_READ')")
     public java.util.List<Map<String, Object>> getTransactions(Authentication authentication) {
         Long userId = authHelper.getUserId(authentication);
         Wallet wallet = walletService.getWalletByUserId(userId);
