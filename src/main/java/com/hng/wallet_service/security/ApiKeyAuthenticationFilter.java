@@ -31,6 +31,7 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain) throws ServletException, IOException {
 
         String apiKeyHeader = request.getHeader("x-api-key");
+        System.out.println("DEBUG: x-api-key header = " + (apiKeyHeader != null ? "present" : "null"));
 
         if (apiKeyHeader != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             try {
@@ -52,6 +53,8 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (Exception e) {
                 // Invalid API key, continue without authentication
+                System.err.println("API Key validation failed: " + e.getMessage());
+                e.printStackTrace();
             }
         }
 

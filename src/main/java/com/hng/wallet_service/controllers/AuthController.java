@@ -1,5 +1,6 @@
 package com.hng.wallet_service.controllers;
 
+import com.hng.wallet_service.dto.AuthResponseDTO;
 import com.hng.wallet_service.services.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -11,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -37,7 +37,7 @@ public class AuthController {
     }
 
     @GetMapping("/google/callback")
-    public Map<String, String> googleCallback(
+    public AuthResponseDTO googleCallback(
             @AuthenticationPrincipal OAuth2User oauth2User,
             HttpServletResponse response) throws IOException {
         if (oauth2User == null) {
@@ -45,12 +45,6 @@ public class AuthController {
             return null;
         }
 
-        String jwt = authService.handleGoogleLogin(oauth2User);
-
-        Map<String, String> result = new HashMap<>();
-        result.put("token", jwt);
-        result.put("message", "Login successful");
-
-        return result;
+        return authService.handleGoogleLogin(oauth2User);
     }
 }
