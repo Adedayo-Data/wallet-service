@@ -29,6 +29,7 @@ public class SecurityConfig {
                                                                 "/oauth2/**",
                                                                 "/login/**",
                                                                 "/wallet/paystack/webhook",
+                                                                "/health",
                                                                 "/v3/api-docs/**",
                                                                 "/swagger-ui/**",
                                                                 "/swagger-ui.html")

@@ -1,6 +1,7 @@
 package com.hng.wallet_service.controllers;
 
 import com.hng.wallet_service.services.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,6 +20,21 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+
+    @GetMapping("/google")
+    public Map<String, String> initiateGoogleLogin(HttpServletRequest request) {
+        // Get the base URL (works for both localhost and Render)
+        String baseUrl = request.getScheme() + "://" + request.getServerName();
+        if (request.getServerPort() != 80 && request.getServerPort() != 443) {
+            baseUrl += ":" + request.getServerPort();
+        }
+
+        String oauthUrl = baseUrl + "/oauth2/authorization/google";
+
+        return Map.of(
+                "message", "Click the URL below to login with Google",
+                "google_login_url", oauthUrl);
+    }
 
     @GetMapping("/google/callback")
     public Map<String, String> googleCallback(
