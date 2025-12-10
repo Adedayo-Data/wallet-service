@@ -9,7 +9,6 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.authentication.session.NullAuthenticatedSessionStrategy;
 
 @Configuration
 @EnableWebSecurity
@@ -25,9 +24,9 @@ public class SecurityConfig {
                 http
                                 .csrf(csrf -> csrf.disable())
                                 .sessionManagement(session -> session
-                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                                                // Allow OAuth2 to create sessions for the login flow
-                                                .sessionAuthenticationStrategy(new NullAuthenticatedSessionStrategy()))
+                                                // IF_REQUIRED allows OAuth2 to work while keeping API calls mostly
+                                                // stateless
+                                                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers(
                                                                 "/auth/**",

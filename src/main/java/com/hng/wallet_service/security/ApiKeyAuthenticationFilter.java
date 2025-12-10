@@ -33,7 +33,7 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
         String apiKeyHeader = request.getHeader("x-api-key");
         System.out.println("DEBUG: x-api-key header = " + (apiKeyHeader != null ? "present" : "null"));
 
-        if (apiKeyHeader != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        if (apiKeyHeader != null) {
             try {
                 ApiKey apiKey = apiKeyService.validateApiKey(apiKeyHeader);
 
