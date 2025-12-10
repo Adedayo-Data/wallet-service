@@ -24,8 +24,14 @@ public class SecurityConfig {
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 .authorizeHttpRequests(auth -> auth
-                                                .requestMatchers("/auth/**", "/oauth2/**", "/login/**",
-                                                                "/wallet/paystack/webhook")
+                                                .requestMatchers(
+                                                                "/auth/**",
+                                                                "/oauth2/**",
+                                                                "/login/**",
+                                                                "/wallet/paystack/webhook",
+                                                                "/v3/api-docs/**",
+                                                                "/swagger-ui/**",
+                                                                "/swagger-ui.html")
                                                 .permitAll()
                                                 .anyRequest().authenticated())
                                 .oauth2Login(oauth -> oauth

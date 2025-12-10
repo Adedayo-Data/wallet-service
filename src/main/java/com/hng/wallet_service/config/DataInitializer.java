@@ -1,4 +1,4 @@
-package com.hng.wallet_service.models;
+package com.hng.wallet_service.config;
 
 import com.hng.wallet_service.services.TransactionService;
 import lombok.RequiredArgsConstructor;
