@@ -1,6 +1,11 @@
 package com.hng.wallet_service.services;
 
+import com.hng.wallet_service.exceptions.ApiKeyExpiredException;
 import com.hng.wallet_service.exceptions.ApiKeyLimitExceededException;
+import com.hng.wallet_service.exceptions.ApiKeyRevokedException;
+import com.hng.wallet_service.exceptions.InvalidAmountException;
+import com.hng.wallet_service.exceptions.UnauthorizedException;
+import com.hng.wallet_service.exceptions.WalletNotFoundException;
 import com.hng.wallet_service.models.ApiKey;
 import com.hng.wallet_service.models.User;
 import com.hng.wallet_service.models.enums.ApiKeyStatus;
@@ -39,7 +44,7 @@ public class ApiKeyService {
         }
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new WalletNotFoundException("User not found with ID: " + userId));
 
         // Generate random API key
         String rawKey = generateRandomKey();
@@ -66,14 +71,14 @@ public class ApiKeyService {
     @Transactional
     public ApiKeyCreationResponse rolloverApiKey(Long userId, Long expiredKeyId, String newExpiry) {
         ApiKey expiredKey = apiKeyRepository.findById(expiredKeyId)
-                .orElseThrow(() -> new RuntimeException("API key not found"));
+                .orElseThrow(() -> new WalletNotFoundException("API key not found with ID: " + expiredKeyId));
 
         if (!expiredKey.getUser().getId().equals(userId)) {
-            throw new RuntimeException("Unauthorized");
+            throw new UnauthorizedException("You are not authorized to rollover this API key");
         }
 
         if (expiredKey.getExpiresAt().isAfter(LocalDateTime.now())) {
-            throw new RuntimeException("Key is not expired yet");
+            throw new InvalidAmountException("API key has not expired yet. Expires at: " + expiredKey.getExpiresAt());
         }
 
         // Create new key with same permissions
@@ -81,24 +86,40 @@ public class ApiKeyService {
     }
 
     public ApiKey validateApiKey(String rawKey) {
-        String keyPrefix = "sk_live_" + rawKey.substring(8, 16);
+        // The rawKey passed here is the full key, e.g., "sk_live_abcdefgh..."
+        // The prefix stored in the DB is "sk_live_" + first 8 chars of the generated
+        // random key.
+        // The hash stored in the DB is of the full generated random key (excluding
+        // "sk_live_").
 
-        List<ApiKey> keys = apiKeyRepository.findByUserIdAndStatus(null, ApiKeyStatus.ACTIVE);
+        // Extract the prefix from the raw key (first 16 chars: "sk_live_" + first 8
+        // chars of random key)
+        String keyPrefix = rawKey.substring(0, 16);
+
+        // The actual random key part (without "sk_live_") starts at index 8 of the full
+        // rawKey.
+        String actualRandomKey = rawKey.substring(8);
+
+        // Get ALL active API keys (not just ones with null userId!)
+        List<ApiKey> keys = apiKeyRepository.findAll().stream()
+                .filter(k -> k.getStatus() == ApiKeyStatus.ACTIVE)
+                .toList();
 
         for (ApiKey key : keys) {
             if (key.getKeyPrefix().equals(keyPrefix)
                     && passwordEncoder.matches(rawKey.substring(8), key.getKeyHash())) {
                 if (key.getExpiresAt().isBefore(LocalDateTime.now())) {
-                    throw new RuntimeException("API key expired");
+                    throw new ApiKeyExpiredException(
+                            "API key has expired. Please create a new key or rollover the expired one.");
                 }
                 if (key.getStatus() != ApiKeyStatus.ACTIVE) {
-                    throw new RuntimeException("API key revoked");
+                    throw new ApiKeyRevokedException("API key has been revoked. Please create a new key.");
                 }
                 return key;
             }
         }
 
-        throw new RuntimeException("Invalid API key");
+        throw new UnauthorizedException("Invalid API key. Please check your key and try again.");
     }
 
     private String generateRandomKey() {
@@ -116,7 +137,7 @@ public class ApiKeyService {
             case "1D" -> now.plusDays(1);
             case "1M" -> now.plusMonths(1);
             case "1Y" -> now.plusYears(1);
-            default -> throw new RuntimeException("Invalid expiry format. Use 1H, 1D, 1M, or 1Y");
+            default -> throw new InvalidAmountException("Invalid expiry format. Use 1H, 1D, 1M, or 1Y");
         };
     }
 

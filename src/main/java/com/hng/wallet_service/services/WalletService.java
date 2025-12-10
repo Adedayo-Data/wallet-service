@@ -1,5 +1,6 @@
 package com.hng.wallet_service.services;
 
+import com.hng.wallet_service.exceptions.WalletNotFoundException;
 import com.hng.wallet_service.models.User;
 import com.hng.wallet_service.models.Wallet;
 import com.hng.wallet_service.repositories.WalletRepository;
@@ -44,11 +45,11 @@ public class WalletService {
 
     public Wallet getWalletByUserId(Long userId) {
         return walletRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Wallet not found for user"));
+                .orElseThrow(() -> new WalletNotFoundException("Wallet not found for user ID: " + userId));
     }
 
     public Wallet getWalletByWalletNumber(String walletNumber) {
         return walletRepository.findByWalletNumber(walletNumber)
-                .orElseThrow(() -> new RuntimeException("Wallet not found"));
+                .orElseThrow(() -> new WalletNotFoundException("Wallet not found: " + walletNumber));
     }
 }

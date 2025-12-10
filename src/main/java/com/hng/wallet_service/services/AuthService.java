@@ -1,6 +1,8 @@
 package com.hng.wallet_service.services;
 
+import com.hng.wallet_service.dto.AuthResponseDTO;
 import com.hng.wallet_service.models.User;
+import com.hng.wallet_service.models.Wallet;
 import com.hng.wallet_service.repositories.UserRepository;
 import com.hng.wallet_service.utils.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +19,7 @@ public class AuthService {
     private final JwtUtil jwtUtil;
 
     @Transactional
-    public String handleGoogleLogin(OAuth2User oauth2User) {
+    public AuthResponseDTO handleGoogleLogin(OAuth2User oauth2User) {
         String email = oauth2User.getAttribute("email");
         String name = oauth2User.getAttribute("name");
         String googleSubjectId = oauth2User.getAttribute("sub");
@@ -37,7 +39,19 @@ public class AuthService {
                     return savedUser;
                 });
 
+        // Get user's wallet
+        Wallet wallet = walletService.getWalletByUserId(user.getId());
+
         // Generate JWT
-        return jwtUtil.generateToken(user.getEmail(), user.getId());
+        String jwt = jwtUtil.generateToken(user.getEmail(), user.getId());
+
+        // Build and return response
+        return AuthResponseDTO.builder()
+                .token(jwt)
+                .message("Login successful")
+                .walletNumber(wallet.getWalletNumber())
+                .email(user.getEmail())
+                .fullName(user.getFullName())
+                .build();
     }
 }
