@@ -43,6 +43,16 @@ public class PaystackService {
         Wallet wallet = walletRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Wallet not found"));
 
+        // Validate minimum amount Paystack requirement: minimum 100 Naira
+        if (amount.compareTo(BigDecimal.valueOf(100)) < 0) {
+            throw new IllegalArgumentException("Minimum deposit amount is 100 Naira");
+        }
+
+        // Validate decimal precision (max 2 decimal places to avoid silent truncation)
+        if (amount.scale() > 2) {
+            throw new IllegalArgumentException("Amount cannot have more than 2 decimal places");
+        }
+
         // Convert amount to kobo (Paystack uses kobo)
         long amountInKobo = amount.multiply(BigDecimal.valueOf(100)).longValue();
 
@@ -86,9 +96,6 @@ public class PaystackService {
 
     @Transactional
     public void handleWebhook(String signature, String payload) {
-        // Note: Paystack test mode doesn't provide webhook secrets
-        // In production, you should validate the signature
-        // For now, we'll process the webhook without validation
 
         // Parse payload
         Map<String, Object> event = parsePayload(payload);
@@ -121,6 +128,48 @@ public class PaystackService {
                 transaction.setStatus(TransactionStatus.FAILED);
                 transactionRepository.save(transaction);
             }
+        } else if ("charge.failed".equals(eventType)) {
+            // Handle failed charge events
+            Map<String, Object> data = (Map<String, Object>) event.get("data");
+            String reference = (String) data.get("reference");
+
+            // Find transaction
+            Transaction transaction = transactionRepository.findByReference(reference)
+                    .orElseThrow(() -> new RuntimeException("Transaction not found"));
+
+            // Idempotency check - don't update if already processed
+            if (transaction.getStatus() == TransactionStatus.SUCCESS ||
+                    transaction.getStatus() == TransactionStatus.FAILED) {
+                return; // Already processed
+            }
+
+            // Mark transaction as failed
+            transaction.setStatus(TransactionStatus.FAILED);
+            transactionRepository.save(transaction);
+
+            // Log the failure for monitoring
+            System.out.println("Transaction failed: " + reference);
+        } else if ("charge.abandoned".equals(eventType)) {
+            // Handle abandoned charge events (user closed payment page)
+            Map<String, Object> data = (Map<String, Object>) event.get("data");
+            String reference = (String) data.get("reference");
+
+            // Find transaction
+            Transaction transaction = transactionRepository.findByReference(reference)
+                    .orElseThrow(() -> new RuntimeException("Transaction not found"));
+
+            // Idempotency check - don't update if already processed
+            if (transaction.getStatus() == TransactionStatus.SUCCESS ||
+                    transaction.getStatus() == TransactionStatus.FAILED) {
+                return; // Already processed
+            }
+
+            // Mark transaction as failed
+            transaction.setStatus(TransactionStatus.FAILED);
+            transactionRepository.save(transaction);
+
+            // Log the abandonment for monitoring
+            System.out.println("Transaction abandoned: " + reference);
         }
     }
 
